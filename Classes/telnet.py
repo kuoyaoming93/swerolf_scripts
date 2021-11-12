@@ -12,7 +12,7 @@ class Telnet:
                         "a5",   "a6",   "a7",   "s2",   "s3",
                         "s4",   "s5",   "s6",   "s7",   "s8",
                         "s9",   "s10",  "s11",  "t3",   "t4",
-                        "t5",   "t6",   "pc",   "minstret", "mcause"
+                        "t5",   "t6",   "pc",   "mcause"
                     ]
         #self.regs = [
         #                "zero", "ra",   "sp",   "gp",   "tp", 
@@ -35,7 +35,6 @@ class Telnet:
 
     def halt(self):
         self.tn.write(b"halt\n")
-        self.tn.read_until('\n')
         self.tn.read_until('\n')
     
     def loadImage(self, path):
@@ -61,7 +60,6 @@ class Telnet:
     def resume(self):
         self.tn.write(b"resume\n")
         self.tn.read_until('\n')
-        self.tn.read_until('\n')
 
     def firstStep(self):
         self.tn.write(b"step\n")
@@ -70,6 +68,17 @@ class Telnet:
 
     def step(self):
         self.tn.write(b"step\n")
+        self.tn.read_until('\n')
+
+    def setBP(self,address):
+        command = "bp " + address + " 1 hw\n"
+        self.tn.write(command)
+        self.tn.read_until('\n')
+        self.tn.read_until('\n')
+        self.tn.read_until('\n')
+    
+    def unsetBP(self):
+        self.tn.write(b"rbp all\n")
         self.tn.read_until('\n')
         
 
