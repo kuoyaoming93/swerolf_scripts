@@ -1,13 +1,17 @@
 import time
-import subprocess 
+import subprocess
 import os
-import signal 
+import sys
+import signal
 import filecmp
-from Classes.telnet import Telnet
+
+my_lib_path = os.path.abspath('./Classes')
+sys.path.append(my_lib_path)
+from telnet import Telnet
 
 TESTS = 10
 BREAKPOINT = "0x00001ea8"
-PROGRAM_PATH = "/home/kuo/gits/Cores-SweRVolf/sw/baremetal_demo/aes.elf"
+PROGRAM_PATH = "/home/pi/aes.elf"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
