@@ -86,11 +86,16 @@ class Telnet:
     def read_reg(self, num):
         command = "reg " + self.regs[num] + " force\n"
         self.tn.write(command)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(self.regs[num]+' (/32): ',timeout=self.timeout)
         cmd = self.tn.read_until('\n',timeout=self.timeout)
-        cmdStr = cmd.split(' ')
-        self.tn.read_until('\n',timeout=self.timeout)
-        return cmdStr[2]
+        return cmd.replace("\n","")
+        #command = "reg " + self.regs[num] + " force\n"
+        #self.tn.write(command)
+        #self.tn.read_until('\n',timeout=self.timeout)
+        #cmd = self.tn.read_until('\n',timeout=self.timeout)
+        #cmdStr = cmd.split(' ')
+        #self.tn.read_until('\n',timeout=self.timeout)
+        #return cmdStr[2]
 
     def exit(self):
         self.tn.write(b"exit\n")

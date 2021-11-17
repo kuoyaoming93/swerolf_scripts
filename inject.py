@@ -1,3 +1,4 @@
+from __future__ import division
 import time
 import subprocess
 import os
@@ -5,6 +6,7 @@ import sys
 import signal
 import filecmp
 import RPi.GPIO as GPIO
+
 
 my_lib_path = os.path.abspath('./Classes')
 sys.path.append(my_lib_path)
@@ -18,11 +20,11 @@ SEM_BAUDRATE = 230400
 CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
-TESTS = 10000
-ERROR_EACH = 70
+TESTS = 7096
+ERROR_EACH = 1
 
-BREAKPOINT = "0x00001e14"
-PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/aes128.elf"
+BREAKPOINT = "0x00001e90"
+PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/aes.elf"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
@@ -30,15 +32,15 @@ MCAUSE_VALUE = "0x00000000"
 LOG_PATH = "routine.log"
 ORIGINAL_PATH = "original.txt"
 INJECT_PATH = "inject.txt"
-INJECT_FILE = "./exu.txt"
+INJECT_FILE = "./data/frameRange.txt"
 
 
 # Time out, 5 secs
-TIMEOUT = 5      
+TIMEOUT = 10      
 
 # How many success and errors
 errors = 0
-success = 0
+
 # Error type
 faults = 0
 hangs = 0
@@ -89,7 +91,7 @@ for num in range(TESTS+1):
     log.flush()
 
     # OpenOCD server open
-    proc = subprocess.Popen(["openocd","-f", "./swervolf_nexys_debug.cfg"])
+    proc = subprocess.Popen(["openocd","-f", "./board1.cfg"])
     time.sleep(2.5)
 
     # If we can open
@@ -148,9 +150,18 @@ for num in range(TESTS+1):
             cpu_exit_status = "START"
             while ((pc.find(BREAKPOINT) == -1) and (mcause.find(MCAUSE_VALUE) != -1)) :
                 tn.resume()
-                
+
+                time2 = time.time()
+                if (time2-time1) > TIMEOUT:
+                    timeout = 1
+                    break
+
                 if "START" in cpu_exit_status:
-                    cpu_exit_status = cpu.printOut()
+                    try:
+                        cpu_exit_status = cpu.printOut()
+                        log.write("CPU OUTPUT: " + cpu_exit_status + "\n")
+                    except:
+                        result_error = 1
                 time.sleep(0.1)
 
                 tn.halt()
@@ -175,10 +186,6 @@ for num in range(TESTS+1):
                     timeout = 1
                     print("ERROR: READ MCAUSE")
                     log.write("ERROR: READ MCAUSE\n")
-                    break
-                time2 = time.time()
-                if (time2-time1) > TIMEOUT:
-                    timeout = 1
                     break
 
             # Read all registers
@@ -216,38 +223,54 @@ for num in range(TESTS+1):
     f.close()
 
     # Reinject error
-    if num!=0:
-        sem.injectError(address)
+    #if num!=0:
+    #    sem.injectError(address)
 
     # Close SEM IP
     sem.close()
+    cpu.close()
 
     # Comparison between files
     if num!=0:
-        if(filecmp.cmp(ORIGINAL_PATH, INJECT_PATH)):
-            success = success + 1
-            log.write("OK\n")
-        else:
+        if timeout ==1 :
+            log.write("HANG error\n")
+            hangs = hangs + 1
             errors = errors + 1
-            if timeout ==1 :
-                log.write("HANG error\n")
-                hangs = hangs + 1
-            elif mcause.find(MCAUSE_VALUE) == -1:
-                log.write("FAULT error\n")
-                faults = faults + 1
-            else:
-                log.write("DATA error\n")
-                mismatch = mismatch + 1
+        elif mcause.find(MCAUSE_VALUE) == -1:
+            log.write("FAULT error\n")
+            faults = faults + 1
+            errors = errors + 1
+        elif result_error == 1:
+            log.write("DATA mismatch error\n")
+            result_mismatch = result_mismatch + 1
+            errors = errors + 1
+        elif (filecmp.cmp(ORIGINAL_PATH, INJECT_PATH) == False):
+            log.write("REGISTER error\n")
+            mismatch = mismatch + 1
+            errors = errors + 1
+        else:
+            log.write("OK\n")
         
         log.write('\n')
         log.flush()
 
         # Print report
-        log.write("Number of tests: " + str(num) + "\n")
-        log.write("Number of errors: " + str(errors) + " (" + str(100*errors/num) + "%)" + "\n")
-        log.write("Faults: " + str(faults) + " (" + str(100*faults/num) + "%)" + "\n")
-        log.write("Hangs: " + str(hangs) + " (" + str(100*hangs/num) + "%)" + "\n")
-        log.write("Mismatches: " + str(mismatch) + " (" + str(100*mismatch/num) + "%)" + "\n")
+        number_errors = float(100*errors/num)
+        number_errors_float = "{:.2f}".format(number_errors)
+        number_faults = float(100*faults/num)
+        number_faults_float = "{:.2f}".format(number_faults)
+        number_hangs = float(100*hangs/num)
+        number_hangs_float = "{:.2f}".format(number_hangs)
+        number_mismatch = float(100*mismatch/num)
+        number_mismatch_float = "{:.2f}".format(number_mismatch)
+        number_result_error = float(100*result_mismatch/num)
+        number_result_error_float = "{:.2f}".format(number_result_error)
+        log.write("Total number of tests: " + str(num) + "\n")
+        log.write("Total number of errors: " + str(errors) + " (" + str(number_errors_float) + "%)" + "\n")
+        log.write("Number of exceptions: " + str(faults) + " (" + str(number_faults_float) + "%)" + "\n")
+        log.write("Number of CPU Hangs: " + str(hangs) + " (" + str(number_hangs_float) + "%)" + "\n")
+        log.write("Number of result mismatches: " + str(result_mismatch) + " (" + str(number_result_error_float) + "%)" + "\n")
+        log.write("Number of internal reg mismatches: " + str(mismatch) + " (" + str(number_mismatch_float) + "%)" + "\n")
         log.flush()
         log.write('\n')
         log.flush()
@@ -259,11 +282,22 @@ for num in range(TESTS+1):
 log.write("-------------------------------------\n")
 log.write("--------------- Summary -------------\n")
 log.write("-------------------------------------\n")
-log.write("Total tests: " + str(TESTS) + "\n")
-log.write("Number of errors: " + str(errors) + " (" + str(100*errors/TESTS) + "%)" + "\n")
-log.write("Faults: " + str(faults) + " (" + str(100*faults/TESTS) + "%)" + "\n")
-log.write("Hangs: " + str(hangs) + " (" + str(100*hangs/TESTS) + "%)" + "\n")
-log.write("Mismatches: " + str(mismatch) + " (" + str(100*mismatch/TESTS) + "%)" + "\n")
+number_errors = float(100*errors/num)
+number_errors_float = "{:.2f}".format(number_errors)
+number_faults = float(100*faults/num)
+number_faults_float = "{:.2f}".format(number_faults)
+number_hangs = float(100*hangs/num)
+number_hangs_float = "{:.2f}".format(number_hangs)
+number_mismatch = float(100*mismatch/num)
+number_mismatch_float = "{:.2f}".format(number_mismatch)
+number_result_error = float(100*result_mismatch/num)
+number_result_error_float = "{:.2f}".format(number_result_error)
+log.write("Total number of tests: " + str(TESTS) + "\n")
+log.write("Total number of errors: " + str(errors) + " (" + str(number_errors_float) + "%)" + "\n")
+log.write("Number of exceptions: " + str(faults) + " (" + str(number_faults_float) + "%)" + "\n")
+log.write("Number of CPU Hangs: " + str(hangs) + " (" + str(number_hangs_float) + "%)" + "\n")
+log.write("Number of result mismatches: " + str(result_mismatch) + " (" + str(number_result_error_float) + "%)" + "\n")
+log.write("Number of internal reg mismatches: " + str(mismatch) + " (" + str(number_mismatch_float) + "%)" + "\n")
 log.flush()
 
 log.close()

@@ -4,7 +4,7 @@ class CPU:
     def __init__(self, port, baud):
         self.port = port
         self.baud = baud
-        self.id = serial.Serial(port, baud)
+        self.id = serial.Serial(port, baud, timeout=5)
 
     def close(self):
         self.id.close()
@@ -28,7 +28,7 @@ class CPU:
         return num
 
     def printOut(self):
-        buf = self.readUntil('>').replace("\r","\r\n")
+        buf = self.readUntil('>')
         #print(buf)
         return buf
 
