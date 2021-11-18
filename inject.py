@@ -5,7 +5,8 @@ import os
 import sys
 import signal
 import filecmp
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
+from gpiozero import LED
 
 
 my_lib_path = os.path.abspath('./Classes')
@@ -20,8 +21,8 @@ SEM_BAUDRATE = 230400
 CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
-TESTS = 7096
-ERROR_EACH = 1
+TESTS = 10000
+ERROR_EACH = 90
 
 BREAKPOINT = "0x00001e90"
 PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/aes.elf"
@@ -48,8 +49,9 @@ mismatch = 0
 result_mismatch = 0
 
 # Set GPIO to program 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(40, GPIO.OUT)
+#GPIO.setmode(GPIO.BOARD)
+#GPIO.setup(40, GPIO.OUT)
+led = LED(21)
 
 log = open(LOG_PATH, "w")
 injFile = open(INJECT_FILE, "r")
@@ -63,9 +65,11 @@ for num in range(TESTS+1):
     result_error = 0
 
     # Reset board
-    GPIO.output(40, False)
+    #GPIO.output(40, False)
+    led.off()
     time.sleep(0.5)
-    GPIO.output(40, True)
+    #GPIO.output(40, True)
+    led.on()
 
     # Connect SEM IP
     sem = SemIP(SEM_PORT,SEM_BAUDRATE)
@@ -92,12 +96,12 @@ for num in range(TESTS+1):
 
     # OpenOCD server open
     proc = subprocess.Popen(["openocd","-f", "./board1.cfg"])
-    time.sleep(2.5)
+    time.sleep(3)
 
     # If we can open
     if proc.poll()==None:
         # Connect and load the .elf file
-        tn = Telnet("localhost", 4444)
+        tn = Telnet('localhost', 4444)
 
         status = 0
         try:
@@ -115,9 +119,6 @@ for num in range(TESTS+1):
             except:
                 timeout = 1
                 print("ERROR: TELNET LOADING PROGRAM")
-
-            # Set timer
-            time1 = time.time()
 
             try:
                 tn.firstStep()
@@ -147,6 +148,8 @@ for num in range(TESTS+1):
                 print("ERROR: READ MCAUSE")
                 log.write("ERROR: READ MCAUSE\n")
 
+            # Set timer
+            time1 = time.time()
             cpu_exit_status = "START"
             while ((pc.find(BREAKPOINT) == -1) and (mcause.find(MCAUSE_VALUE) != -1)) :
                 tn.resume()

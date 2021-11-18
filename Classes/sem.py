@@ -24,11 +24,12 @@ class SemIP:
         return buf
 
     def write(self, command):
-        num = self.id.write(command + "\r")
+        sendStr = command + "\r"
+        num = self.id.write(sendStr.encode())
         return num
 
     def printOut(self):
-        buf = self.readUntil('>').replace("\r","\r\n")
+        buf = (self.readUntil(">").decode("utf-8")).replace("\r","\r\n")
         print(buf)
         return buf
 
