@@ -88,8 +88,9 @@ for num in range(TESTS+1):
         f = open(ORIGINAL_PATH, "w")
     else:
         f = open(INJECT_PATH, "w")
-        for i in range(ERROR_EACH):
-            address = injFile.readline().rstrip()
+        if num!=1:
+            for i in range(ERROR_EACH):
+                address = injFile.readline().rstrip()
             #print(address)
         log.write("[TEST "+ str(num) + "] " +"Injection address: " + address + "\n")
         sem.injectError(address)
