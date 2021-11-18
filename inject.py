@@ -23,6 +23,7 @@ CPU_BAUDRATE = 57600
 
 TESTS = 10000
 ERROR_EACH = 90
+START_POSITION = 45
 
 BREAKPOINT = "0x00001e90"
 PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/aes.elf"
@@ -57,6 +58,9 @@ log = open(LOG_PATH, "w")
 injFile = open(INJECT_FILE, "r")
 address = ""
 
+# Read addresses until start position
+for i in range(START_POSITION):
+    address = injFile.readline().rstrip()
 
 for num in range(TESTS+1):
 
