@@ -22,8 +22,8 @@ CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
 TESTS = 10000
-ERROR_EACH = 90
-START_POSITION = 45
+ERROR_EACH = 142
+START_POSITION = 1
 
 BREAKPOINT = "0x00001e90"
 PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/aes.elf"
@@ -34,7 +34,7 @@ MCAUSE_VALUE = "0x00000000"
 LOG_PATH = "routine.log"
 ORIGINAL_PATH = "original.txt"
 INJECT_PATH = "inject.txt"
-INJECT_FILE = "./data/frameRange.txt"
+INJECT_FILE = "./data/dec.txt"
 
 
 # Time out, 5 secs
@@ -111,6 +111,7 @@ for num in range(TESTS+1):
         status = 0
         try:
             tn.connect()
+            print("TELNET CONNECT")
             status = 0
         except:
             timeout = 1
@@ -121,43 +122,58 @@ for num in range(TESTS+1):
         if status == 0:
             try:
                 tn.run(PROGRAM_PATH)
+                print("TELNET LOADING PROGRAM")
             except:
                 timeout = 1
                 print("ERROR: TELNET LOADING PROGRAM")
 
             try:
                 tn.firstStep()
+                print("STEPPING PROGRAM")
             except:
                 timeout = 1
                 print("ERROR: STEPPING PROGRAM")
 
             try:
                 tn.setBP(BREAKPOINT)
+                print("SETTING BREAKPOINT")
             except:
                 timeout = 1
                 print("ERROR: SETTING BREAKPOINT")
 
             try: 
                 pc = tn.read_reg(PC_IDX).decode("utf-8")
+                print("READING PC")
+                print(pc)
             except:
                 pc = BREAKPOINT
                 timeout = 1
                 print("ERROR: READ PC")
                 log.write("ERROR: READ PC\n")
 
-            try:
-                mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
-            except:
-                mcause = 1
+            if "0x" in pc:
+                try:
+                    mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
+                    print("READING MCAUSE")
+                except:
+                    mcause = "0xFFFFFFFF"
+                    timeout = 1
+                    print("ERROR: READ MCAUSE")
+                    log.write("ERROR: READ MCAUSE\n")
+            else:
+                mcause = "0xFFFFFFFF"
                 timeout = 1
-                print("ERROR: READ MCAUSE")
-                log.write("ERROR: READ MCAUSE\n")
 
             # Set timer
             time1 = time.time()
             cpu_exit_status = "START"
             while ((pc.find(BREAKPOINT) == -1) and (mcause.find(MCAUSE_VALUE) != -1)) :
-                tn.resume()
+                if "0x" in pc:
+                    print("RESUME")
+                    tn.resume()
+                else:
+                    timeout = 1
+                    break
 
                 time2 = time.time()
                 if (time2-time1) > TIMEOUT:
@@ -172,7 +188,12 @@ for num in range(TESTS+1):
                         result_error = 1
                 time.sleep(0.1)
 
-                tn.halt()
+                if "0x" in pc:
+                    print("HALT")
+                    tn.halt()
+                else:
+                    timeout = 1
+                    break
 
                 if "FAIL" in cpu_exit_status:
                     result_error = 1
@@ -190,7 +211,7 @@ for num in range(TESTS+1):
                 try:
                     mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
                 except:
-                    mcause = 1
+                    mcause = "0xFFFFFFFF"
                     timeout = 1
                     print("ERROR: READ MCAUSE")
                     log.write("ERROR: READ MCAUSE\n")
