@@ -22,7 +22,7 @@ CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
 TESTS = 10000
-ERROR_EACH = 142
+ERROR_EACH = 107
 START_POSITION = 1
 
 BREAKPOINT = "0x00001e90"
@@ -34,7 +34,7 @@ MCAUSE_VALUE = "0x00000000"
 LOG_PATH = "routine.log"
 ORIGINAL_PATH = "original.txt"
 INJECT_PATH = "inject.txt"
-INJECT_FILE = "./data/dec.txt"
+INJECT_FILE = "./data/lsu.txt"
 
 
 # Time out, 5 secs
@@ -201,6 +201,7 @@ for num in range(TESTS+1):
 
                 try:
                     pc = tn.read_reg(PC_IDX).decode("utf-8")
+                    print("READ PC")
                 except:
                     pc = BREAKPOINT
                     timeout = 1
@@ -208,13 +209,18 @@ for num in range(TESTS+1):
                     log.write("ERROR: READ PC\n")
                     break
                 
-                try:
-                    mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
-                except:
-                    mcause = "0xFFFFFFFF"
+                if "0x" in pc:
+                    try:
+                        mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
+                        print("READ MCAUSE")
+                    except:
+                        mcause = "0xFFFFFFFF"
+                        timeout = 1
+                        print("ERROR: READ MCAUSE")
+                        log.write("ERROR: READ MCAUSE\n")
+                        break
+                else: 
                     timeout = 1
-                    print("ERROR: READ MCAUSE")
-                    log.write("ERROR: READ MCAUSE\n")
                     break
 
             # Read all registers
