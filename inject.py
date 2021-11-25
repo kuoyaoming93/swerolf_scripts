@@ -22,23 +22,27 @@ CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
 TESTS = 10000
-ERROR_EACH = 107
+ERROR_EACH = 78
 START_POSITION = 1
 
-BREAKPOINT = "0x00001e90"
-PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/aes.elf"
+#BREAKPOINT = "0x00000ffe"
+BREAKPOINT = "0x000000f8"
+PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/rscode.elf"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
 
-LOG_PATH = "routine.log"
-ORIGINAL_PATH = "original.txt"
-INJECT_PATH = "inject.txt"
-INJECT_FILE = "./data/lsu.txt"
+LOG_PATH = "IFU.log"
+ORIGINAL_PATH = "original1.txt"
+INJECT_PATH = "inject1.txt"
+INJECT_FILE = "./data/ifu.txt"
+
+OPENOCD_FILE = "./board1.cfg"
+TELNET_PORT = 4450
 
 
-# Time out, 5 secs
-TIMEOUT = 10      
+# Time out, 10 secs
+TIMEOUT = 15      
 
 # How many success and errors
 errors = 0
@@ -100,13 +104,13 @@ for num in range(TESTS+1):
     log.flush()
 
     # OpenOCD server open
-    proc = subprocess.Popen(["openocd","-f", "./board1.cfg"])
+    proc = subprocess.Popen(["openocd","-f", OPENOCD_FILE])
     time.sleep(3)
 
     # If we can open
     if proc.poll()==None:
         # Connect and load the .elf file
-        tn = Telnet('localhost', 4444)
+        tn = Telnet('localhost', TELNET_PORT)
 
         status = 0
         try:
