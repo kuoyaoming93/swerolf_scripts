@@ -22,20 +22,20 @@ CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
 TESTS = 10000
-ERROR_EACH = 78
+ERROR_EACH = 147
 START_POSITION = 1
 
 #BREAKPOINT = "0x00000ffe"
-BREAKPOINT = "0x000000f8"
-PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/rscode.elf"
+BREAKPOINT = "0x00000102"
+PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/rscode_custom.elf"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
 
-LOG_PATH = "IFU.log"
+LOG_PATH = "CUSTOM_DEC.log"
 ORIGINAL_PATH = "original1.txt"
 INJECT_PATH = "inject1.txt"
-INJECT_FILE = "./data/ifu.txt"
+INJECT_FILE = "./data/custom_dec.txt"
 
 OPENOCD_FILE = "./board1.cfg"
 TELNET_PORT = 4450
