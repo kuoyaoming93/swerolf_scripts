@@ -5,8 +5,8 @@ import os
 import sys
 import signal
 import filecmp
-#import RPi.GPIO as GPIO
-from gpiozero import LED
+import RPi.GPIO as GPIO
+#from gpiozero import LED
 
 
 my_lib_path = os.path.abspath('./Classes')
@@ -16,26 +16,26 @@ from sem import SemIP
 from cpu import CPU
 
 # Configuration
-SEM_PORT = '/dev/ttyUSB2'
+SEM_PORT = '/dev/ttyUSB0'
 SEM_BAUDRATE = 230400
 CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 57600
 
 TESTS = 10000
-ERROR_EACH = 147
+ERROR_EACH = 83
 START_POSITION = 1
 
 #BREAKPOINT = "0x00000ffe"
 BREAKPOINT = "0x00000102"
-PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/rscode_custom.elf"
+PROGRAM_PATH = "/home/kuo/gits/swervolf_scripts/elf/rscode_custom.elf"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
 
-LOG_PATH = "CUSTOM_DEC.log"
+LOG_PATH = "CUSTOM_EXU.log"
 ORIGINAL_PATH = "original1.txt"
 INJECT_PATH = "inject1.txt"
-INJECT_FILE = "./data/custom_dec.txt"
+INJECT_FILE = "./data/custom_exu.txt"
 
 OPENOCD_FILE = "./board1.cfg"
 TELNET_PORT = 4450
@@ -54,9 +54,9 @@ mismatch = 0
 result_mismatch = 0
 
 # Set GPIO to program 
-#GPIO.setmode(GPIO.BOARD)
-#GPIO.setup(40, GPIO.OUT)
-led = LED(21)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(40, GPIO.OUT)
+#led = LED(21)
 
 log = open(LOG_PATH, "w")
 injFile = open(INJECT_FILE, "r")
@@ -73,11 +73,11 @@ for num in range(TESTS+1):
     result_error = 0
 
     # Reset board
-    #GPIO.output(40, False)
-    led.off()
+    GPIO.output(40, False)
+    #led.off()
     time.sleep(0.5)
-    #GPIO.output(40, True)
-    led.on()
+    GPIO.output(40, True)
+    #led.on()
 
     # Connect SEM IP
     sem = SemIP(SEM_PORT,SEM_BAUDRATE)
@@ -110,7 +110,7 @@ for num in range(TESTS+1):
     # If we can open
     if proc.poll()==None:
         # Connect and load the .elf file
-        tn = Telnet('localhost', TELNET_PORT)
+        tn = Telnet("127.0.0.1", TELNET_PORT)
 
         status = 0
         try:
@@ -146,7 +146,7 @@ for num in range(TESTS+1):
                 print("ERROR: SETTING BREAKPOINT")
 
             try: 
-                pc = tn.read_reg(PC_IDX).decode("utf-8")
+                pc = tn.read_reg(PC_IDX)
                 print("READING PC")
                 print(pc)
             except:
@@ -157,7 +157,7 @@ for num in range(TESTS+1):
 
             if "0x" in pc:
                 try:
-                    mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
+                    mcause = tn.read_reg(MCAUSE_IDX)
                     print("READING MCAUSE")
                 except:
                     mcause = "0xFFFFFFFF"
@@ -204,7 +204,7 @@ for num in range(TESTS+1):
                     break
 
                 try:
-                    pc = tn.read_reg(PC_IDX).decode("utf-8")
+                    pc = tn.read_reg(PC_IDX)
                     print("READ PC")
                 except:
                     pc = BREAKPOINT
@@ -215,7 +215,7 @@ for num in range(TESTS+1):
                 
                 if "0x" in pc:
                     try:
-                        mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
+                        mcause = tn.read_reg(MCAUSE_IDX)
                         print("READ MCAUSE")
                     except:
                         mcause = "0xFFFFFFFF"
@@ -232,7 +232,7 @@ for num in range(TESTS+1):
             if timeout==0:
                 for i in range(len(tn.regs)):
                     try:
-                        temporal_reg = tn.read_reg(i).decode("utf-8")
+                        temporal_reg = tn.read_reg(i)
                     except:
                         temporal_reg = ""
                         print("ERROR: READ ALL REGS")
@@ -271,24 +271,25 @@ for num in range(TESTS+1):
 
     # Comparison between files
     if num!=0:
-        if timeout ==1 :
-            log.write("HANG error\n")
-            hangs = hangs + 1
-            errors = errors + 1
-        elif mcause.find(MCAUSE_VALUE) == -1:
-            log.write("FAULT error\n")
-            faults = faults + 1
-            errors = errors + 1
-        elif result_error == 1:
-            log.write("DATA mismatch error\n")
-            result_mismatch = result_mismatch + 1
-            errors = errors + 1
-        elif (filecmp.cmp(ORIGINAL_PATH, INJECT_PATH) == False):
-            log.write("REGISTER error\n")
-            mismatch = mismatch + 1
-            errors = errors + 1
-        else:
+        if filecmp.cmp(ORIGINAL_PATH, INJECT_PATH) == True:
             log.write("OK\n")
+        else:
+            if timeout ==1 :
+                log.write("HANG error\n")
+                hangs = hangs + 1
+                errors = errors + 1
+            elif mcause.find(MCAUSE_VALUE) == -1:
+                log.write("FAULT error\n")
+                faults = faults + 1
+                errors = errors + 1
+            elif result_error == 1:
+                log.write("DATA mismatch error\n")
+                result_mismatch = result_mismatch + 1
+                errors = errors + 1
+            else:
+                log.write("REGISTER error\n")
+                mismatch = mismatch + 1
+                errors = errors + 1
         
         log.write('\n')
         log.flush()
