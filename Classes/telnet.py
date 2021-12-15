@@ -105,3 +105,8 @@ class Telnet:
         self.loadImage(path)
         self.init()
         self.cleanMcause()
+    
+    def run2(self):
+        self.reset()
+        self.init()
+        self.cleanMcause()

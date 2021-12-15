@@ -19,30 +19,28 @@ from cpu import CPU
 SEM_PORT = '/dev/ttyUSB2'
 SEM_BAUDRATE = 230400
 CPU_PORT = '/dev/ttyUSB1'
-CPU_BAUDRATE = 57600
+CPU_BAUDRATE = 115200
 
-TESTS = 10000
-ERROR_EACH = 147
-START_POSITION = 1
+TESTS = 500
+ERROR_EACH = 88
+START_POSITION = 9500
 
-#BREAKPOINT = "0x00000ffe"
-BREAKPOINT = "0x00000102"
-PROGRAM_PATH = "/home/pi/gits/swervolf_scripts/elf/rscode_custom.elf"
+BREAKPOINT = "0x000000d8"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
 
-LOG_PATH = "CUSTOM_DEC.log"
+LOG_PATH = "EXU2.log"
 ORIGINAL_PATH = "original1.txt"
 INJECT_PATH = "inject1.txt"
-INJECT_FILE = "./data/custom_dec.txt"
+INJECT_FILE = "./data/exu.txt"
 
 OPENOCD_FILE = "./board1.cfg"
 TELNET_PORT = 4450
 
 
-# Time out, 10 secs
-TIMEOUT = 15      
+# Time out, 60 secs
+TIMEOUT = 60      
 
 # How many success and errors
 errors = 0
@@ -64,7 +62,8 @@ address = ""
 
 # Read addresses until start position
 for i in range(START_POSITION):
-    address = injFile.readline().rstrip()
+    for i in range(ERROR_EACH):
+	address = injFile.readline().rstrip()
 
 for num in range(TESTS+1):
 
@@ -87,7 +86,7 @@ for num in range(TESTS+1):
     # Connect CPU UART
     cpu = CPU(CPU_PORT,CPU_BAUDRATE)
 
-    time.sleep(2.5)
+    time.sleep(5)
     if num==0:
         f = open(ORIGINAL_PATH, "w")
     else:
@@ -125,7 +124,7 @@ for num in range(TESTS+1):
         # If it is possible to connect, continue 
         if status == 0:
             try:
-                tn.run(PROGRAM_PATH)
+                tn.run2()
                 print("TELNET LOADING PROGRAM")
             except:
                 timeout = 1
@@ -190,6 +189,7 @@ for num in range(TESTS+1):
                         log.write("CPU OUTPUT: " + cpu_exit_status + "\n")
                     except:
                         result_error = 1
+                        log.write("CPU OUTPUT: " + cpu_exit_status + "\n")
                 time.sleep(0.1)
 
                 if "0x" in pc:

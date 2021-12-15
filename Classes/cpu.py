@@ -4,7 +4,7 @@ class CPU:
     def __init__(self, port, baud):
         self.port = port
         self.baud = baud
-        self.id = serial.Serial(port, baud, timeout=5)
+        self.id = serial.Serial(port, baud, timeout=60)
 
     def close(self):
         self.id.close()
