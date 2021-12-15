@@ -4,7 +4,7 @@ class SemIP:
     def __init__(self, port, baud):
         self.port = port
         self.baud = baud
-        self.id = serial.Serial(port, baud,timeout=15)
+        self.id = serial.Serial(port, baud,timeout=5)
 
     def close(self):
         self.id.close()
@@ -20,7 +20,7 @@ class SemIP:
         return buf
 
     def readUntil(self,pattern):
-        buf = self.id.read_until(pattern,100)
+        buf = self.id.read_until(pattern)
         return buf
 
     def write(self, command):
@@ -29,7 +29,7 @@ class SemIP:
         return num
 
     def printOut(self):
-        buf = (self.readUntil(">").decode("utf-8")).replace("\r","\r\n")
+        buf = (self.readUntil(b'>').decode("utf-8")).replace("\r","\r\n")
         print(buf)
         return buf
 

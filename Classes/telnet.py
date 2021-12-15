@@ -27,68 +27,69 @@ class Telnet:
      
     def connect(self):
         self.tn = telnetlib.Telnet(self.host,self.port)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def reset(self):
         self.tn.write(b"reset halt\n")
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def halt(self):
         self.tn.write(b"halt\n")
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
     
     def loadImage(self, path):
         command = "load_image " + path + "\n"
-        self.tn.write(command)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.write(command.encode())
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
     
     def init(self):
         self.tn.write(b"reg pc 0\n")
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def cleanMcause(self):
         self.tn.write(b"reg mcause 0\n")
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def resume(self):
         self.tn.write(b"resume\n")
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def firstStep(self):
         self.tn.write(b"step\n")
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def step(self):
         self.tn.write(b"step\n")
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
 
     def setBP(self,address):
         command = "bp " + address + " 1 hw\n"
-        self.tn.write(command)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.write(command.encode())
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
     
     def unsetBP(self):
         self.tn.write(b"rbp all\n")
-        self.tn.read_until('\n',timeout=self.timeout)
+        self.tn.read_until(b'\n',timeout=self.timeout)
         
 
     def read_reg(self, num):
         command = "reg " + self.regs[num] + " force\n"
-        self.tn.write(command)
-        self.tn.read_until(self.regs[num]+' (/32): ',timeout=self.timeout)
-        cmd = self.tn.read_until('\n',timeout=self.timeout)
-        return cmd.replace("\n","")
+        self.tn.write(command.encode())
+        register = self.regs[num]+' (/32): '
+        self.tn.read_until(register.encode(),timeout=self.timeout)
+        cmd = self.tn.read_until(b'\n',timeout=self.timeout)
+        return cmd.decode("utf-8").replace("\n","")
         #command = "reg " + self.regs[num] + " force\n"
         #self.tn.write(command)
         #self.tn.read_until('\n',timeout=self.timeout)
