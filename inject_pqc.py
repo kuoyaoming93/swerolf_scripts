@@ -5,8 +5,8 @@ import os
 import sys
 import signal
 import filecmp
-#import RPi.GPIO as GPIO
-from gpiozero import LED
+import RPi.GPIO as GPIO
+#from gpiozero import LED
 
 
 my_lib_path = os.path.abspath('./Classes')
@@ -21,26 +21,26 @@ SEM_BAUDRATE = 230400
 CPU_PORT = '/dev/ttyUSB1'
 CPU_BAUDRATE = 115200
 
-TESTS = 500
-ERROR_EACH = 88
-START_POSITION = 9500
+TESTS = 10000
+ERROR_EACH = 125
+START_POSITION = 1
 
-BREAKPOINT = "0x000000d8"
+BREAKPOINT = "0x000000e8"
 PC_IDX = 29
 MCAUSE_IDX = 30
 MCAUSE_VALUE = "0x00000000"
 
-LOG_PATH = "EXU2.log"
+LOG_PATH = "IFU.log"
 ORIGINAL_PATH = "original1.txt"
 INJECT_PATH = "inject1.txt"
-INJECT_FILE = "./data/exu.txt"
+INJECT_FILE = "./data/ifu.txt"
 
 OPENOCD_FILE = "./board1.cfg"
 TELNET_PORT = 4450
 
 
-# Time out, 60 secs
-TIMEOUT = 60      
+# Time out, 85 secs
+TIMEOUT = 85    
 
 # How many success and errors
 errors = 0
@@ -52,18 +52,19 @@ mismatch = 0
 result_mismatch = 0
 
 # Set GPIO to program 
-#GPIO.setmode(GPIO.BOARD)
-#GPIO.setup(40, GPIO.OUT)
-led = LED(21)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(12, GPIO.OUT)
+#led = LED(21)
 
 log = open(LOG_PATH, "w")
 injFile = open(INJECT_FILE, "r")
 address = ""
 
 # Read addresses until start position
-for i in range(START_POSITION):
-    for i in range(ERROR_EACH):
-	address = injFile.readline().rstrip()
+if(START_POSITION !=0):
+    for i in range(START_POSITION):
+        for i in range(ERROR_EACH):
+            address = injFile.readline().rstrip()
 
 for num in range(TESTS+1):
 
@@ -72,11 +73,11 @@ for num in range(TESTS+1):
     result_error = 0
 
     # Reset board
-    #GPIO.output(40, False)
-    led.off()
+    GPIO.output(12, False)
+    #led.off()
     time.sleep(0.5)
-    #GPIO.output(40, True)
-    led.on()
+    GPIO.output(12, True)
+    #led.on()
 
     # Connect SEM IP
     sem = SemIP(SEM_PORT,SEM_BAUDRATE)
@@ -86,7 +87,7 @@ for num in range(TESTS+1):
     # Connect CPU UART
     cpu = CPU(CPU_PORT,CPU_BAUDRATE)
 
-    time.sleep(5)
+    time.sleep(10)
     if num==0:
         f = open(ORIGINAL_PATH, "w")
     else:
@@ -145,7 +146,7 @@ for num in range(TESTS+1):
                 print("ERROR: SETTING BREAKPOINT")
 
             try: 
-                pc = tn.read_reg(PC_IDX).decode("utf-8")
+                pc = tn.read_reg(PC_IDX)
                 print("READING PC")
                 print(pc)
             except:
@@ -156,7 +157,7 @@ for num in range(TESTS+1):
 
             if "0x" in pc:
                 try:
-                    mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
+                    mcause = tn.read_reg(MCAUSE_IDX)
                     print("READING MCAUSE")
                 except:
                     mcause = "0xFFFFFFFF"
@@ -173,7 +174,12 @@ for num in range(TESTS+1):
             while ((pc.find(BREAKPOINT) == -1) and (mcause.find(MCAUSE_VALUE) != -1)) :
                 if "0x" in pc:
                     print("RESUME")
-                    tn.resume()
+                    try:
+                        
+                        tn.resume()
+                    except:
+                        timeout = 1
+                        break
                 else:
                     timeout = 1
                     break
@@ -194,7 +200,11 @@ for num in range(TESTS+1):
 
                 if "0x" in pc:
                     print("HALT")
-                    tn.halt()
+                    try:
+                        tn.halt()
+                    except:
+                        timeout = 1
+                        break
                 else:
                     timeout = 1
                     break
@@ -204,7 +214,7 @@ for num in range(TESTS+1):
                     break
 
                 try:
-                    pc = tn.read_reg(PC_IDX).decode("utf-8")
+                    pc = tn.read_reg(PC_IDX)
                     print("READ PC")
                 except:
                     pc = BREAKPOINT
@@ -215,7 +225,7 @@ for num in range(TESTS+1):
                 
                 if "0x" in pc:
                     try:
-                        mcause = tn.read_reg(MCAUSE_IDX).decode("utf-8")
+                        mcause = tn.read_reg(MCAUSE_IDX)
                         print("READ MCAUSE")
                     except:
                         mcause = "0xFFFFFFFF"
@@ -227,12 +237,15 @@ for num in range(TESTS+1):
                     timeout = 1
                     break
 
+                if "OK" in cpu_exit_status:
+                    break
+
             # Read all registers
             aux = ""
             if timeout==0:
                 for i in range(len(tn.regs)):
                     try:
-                        temporal_reg = tn.read_reg(i).decode("utf-8")
+                        temporal_reg = tn.read_reg(i)
                     except:
                         temporal_reg = ""
                         print("ERROR: READ ALL REGS")
@@ -262,8 +275,8 @@ for num in range(TESTS+1):
     f.close()
 
     # Reinject error
-    #if num!=0:
-    #    sem.injectError(address)
+    if num!=0:
+        sem.injectError(address)
 
     # Close SEM IP
     sem.close()
